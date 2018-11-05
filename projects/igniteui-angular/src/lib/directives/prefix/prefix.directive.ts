@@ -1,9 +1,11 @@
-import { NgModule, Directive } from '@angular/core';
+import { NgModule, Directive, ElementRef } from '@angular/core';
 
 @Directive({
     selector: 'igx-prefix,[igxPrefix]'
 })
-export class IgxPrefixDirective { }
+export class IgxPrefixDirective {
+    constructor(public el: ElementRef) { }
+ }
 
 @NgModule({
     declarations: [IgxPrefixDirective],

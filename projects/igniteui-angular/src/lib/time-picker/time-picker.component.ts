@@ -16,13 +16,16 @@ import {
     ViewChild,
     AfterViewInit,
     DoCheck,
-    ContentChild
+    ContentChild,
+    ChangeDetectorRef,
+    Pipe,
+    PipeTransform
 } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
 import { HAMMER_GESTURE_CONFIG, HammerGestureConfig } from '@angular/platform-browser';
 import { IgxDialogComponent, IgxDialogModule } from '../dialog/dialog.component';
 import { IgxIconModule } from '../icon/index';
-import { IgxInputGroupModule } from '../input-group/input-group.component';
+import { IgxInputGroupModule, IgxInputGroupComponent } from '../input-group/input-group.component';
 import { IgxInputDirective } from '../directives/input/input.directive';
 import {
     IgxAmPmItemDirective,
@@ -33,8 +36,24 @@ import {
 } from './time-picker.directives';
 import { Subscription } from 'rxjs';
 import { EditorProvider } from '../core/edit-provider';
+import { IgxDropDownModule, IgxDropDownComponent } from '../drop-down/drop-down.component';
+import { ConnectedPositioningStrategy, GlobalPositionStrategy } from '../services/overlay/position';
+import { NoOpScrollStrategy } from '../services/overlay/scroll';
+import { HorizontalAlignment, VerticalAlignment, PositionSettings, OverlaySettings } from '../services/overlay/utilities';
+import { IgxToggleModule, IgxOverlayOutletDirective, IgxToggleDirective } from '../directives/toggle/toggle.directive';
+import { IgxPrefixDirective } from '../input-group';
+import { IgxMaskModule } from '../directives/mask/mask.directive';
+import { IgxDropDownItemComponent, IgxDropDownItemBase } from '../drop-down/drop-down-item.component';
 
 let NEXT_ID = 0;
+const HOURS_POS = [0, 1, 2];
+const MINUTES_POS = [3, 4, 5];
+const AMPM_POS = [6, 7, 8];
+
+export enum InteractionMode {
+    dialogPicker,
+    dropdownInput
+}
 export class TimePickerHammerConfig extends HammerGestureConfig {
     public overrides = {
         pan: { direction: Hammer.DIRECTION_VERTICAL, threshold: 1 }
@@ -437,7 +456,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         this._prevSelectedMinute = this.selectedMinute;
         this._prevSelectedAmPm = this.selectedAmPm;
 
-        this._alert.open();
+        this._alert.open(this.dialogOverlaySettings);
         this._onTouchedCallback();
 
         this._updateHourView(0, 7);
@@ -470,13 +489,28 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         if (this.format.indexOf('tt') !== -1) {
             this._generateAmPm();
         }
+
+        this._items = this.generateDropdownItems();
+        this.mask = this.format.indexOf('tt') !== -1 ? '00:00 LL' : '00:00';
     }
 
     /**
      * @hidden
      */
     public ngAfterViewInit(): void {
-        this.dialogClosed = this._alert.toggleRef.onClosed.pipe().subscribe((ev) => this.handleDialogCloseAction());
+        // this.dialogClosed = this._alert.toggleRef.onClosed.pipe().subscribe((ev) => this.handleDialogCloseAction());
+
+        if (this._alert) {
+            this.dialogClosed = this._alert.toggleRef.onClosed.pipe().subscribe((ev) => this.handleDialogCloseAction());
+        }
+
+        this.dialogOverlaySettings.outlet = this.outlet;
+        this.overlaySettings.outlet = this.outlet;
+        this.overlaySettings.positionStrategy.settings.target = this.prefix.el.nativeElement;
+
+        if (this.group) {
+            this.dropdown.width = this.group.element.nativeElement.getBoundingClientRect().width + 'px';
+        }
     }
 
     /**
@@ -649,7 +683,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         };
     }
 
-    private _formatTime(value: Date, format: string): string {
+    private _formatTime(value: Date, format: string, addAmPm = false): string {
         if (!value) {
             return '';
         } else {
@@ -681,6 +715,10 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
             }
 
             formattedMinute = minute < 10 && format.indexOf('mm') !== -1 ? '0' + minute : `${minute}`;
+
+            if (addAmPm) {
+                amPM = (hour > 11) ? 'PM' : 'AM';
+            }
 
             return format.replace('hh', formattedHour).replace('h', formattedHour)
                 .replace('HH', formattedHour).replace('H', formattedHour)
@@ -974,7 +1012,11 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     @HostListener('keydown.spacebar', ['$event'])
     @HostListener('keydown.space', ['$event'])
     public onKeydownSpace(event) {
-        this.openDialog();
+        if (this.mode === InteractionMode.dialogPicker) {
+            this.openDialog();
+        } else {
+            this.toggleDropDown();
+        }
         event.preventDefault();
     }
 
@@ -1031,7 +1073,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         if (this.timePickerTemplateDirective) {
             return this.timePickerTemplateDirective.template;
         }
-        return this.defaultTimePickerTemplate;
+        return this.mode === InteractionMode.dialogPicker ? this.defaultTimePickerTemplate : this.dropdownInputTemplate;
     }
 
     /**
@@ -1045,7 +1087,380 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
             openDialog: () => { this.openDialog(); }
         };
     }
+
+
+    constructor(public cdr: ChangeDetectorRef) { }
+
+    public displayValue: string = '';
+    public isValid: boolean = true;
+    public promptChar = '-';
+    public mask: string;
+    public enableMask = true;
+    public displayFormat = new TimeDisplayFormatPipe(this);
+    public inputFormat = new TimeInputFormatPipe(this);
+
+    private _items: any[];
+
+
+    @Input()
+    public mode = InteractionMode.dropdownInput;
+
+    @Input()
+    public invalidTimeMessage = 'Enter a valid time value!';
+
+    @Input()
+    public dropDownHeight = '200px';
+
+    @ViewChild('dropdownInputTemplate', { read: TemplateRef })
+    private dropdownInputTemplate: TemplateRef<any>;
+
+    @ViewChild('outlet', { read: IgxOverlayOutletDirective })
+    private outlet: IgxOverlayOutletDirective;
+
+    @ViewChild('dropDown', {read: IgxDropDownComponent})
+    private dropdown: IgxDropDownComponent;
+
+    @ViewChild('prefix', { read: IgxPrefixDirective })
+    private prefix: IgxPrefixDirective;
+
+    @ViewChild('group', { read: IgxInputGroupComponent })
+    private group: IgxInputGroupComponent;
+
+    @ViewChild('input', { read: ElementRef })
+    private input: ElementRef;
+
+
+    get items(): any[] {
+        return this._items;
+    }
+
+    get hours(): any[] {
+        let hourItems = [];
+
+        const hourItemsCount = 24 / this.itemsDelta.hours;
+
+        for (let i = 0; i < hourItemsCount; i++) {
+            hourItems.push(i * this.itemsDelta.hours);
+        }
+
+        return hourItems;
+    }
+
+    get validMinuteEntries(): any[] {
+        let minuteEntries = [];
+
+        for (let i = 0; i < 60; i++) {
+            minuteEntries.push(i);
+       }
+
+        return minuteEntries;
+    }
+
+    get validHourEntries(): any[] {
+        let hourEntries = [];
+        let index = this.format.indexOf('h') !== -1 || this.format.indexOf('hh') !== -1 ? 12 : 24;
+
+        for (let i = 0; i < index; i++) {
+            hourEntries.push(i);
+        }
+
+        return hourEntries;
+    }
+
+
+    private dialogOverlaySettings: OverlaySettings = {
+        positionStrategy: new GlobalPositionStrategy(),
+        scrollStrategy: new NoOpScrollStrategy(),
+        modal: true,
+        closeOnOutsideClick: true
+    };
+
+    private positionSettings = {
+        horizontalStartPoint: HorizontalAlignment.Left,
+        verticalStartPoint: VerticalAlignment.Bottom
+    };
+
+    private overlaySettings: OverlaySettings = {
+        modal: false,
+        closeOnOutsideClick: true,
+        scrollStrategy: new NoOpScrollStrategy(),
+        positionStrategy: new ConnectedPositioningStrategy(this.positionSettings)
+    };
+
+    private getCursorPosition(): number {
+        return this.input.nativeElement.selectionStart;
+    }
+
+    private setCursorPosition(start: number, end: number = start): void {
+        this.input.nativeElement.setSelectionRange(start, end);
+    }
+
+    private generateDropdownItems(): any[] {
+
+        let dropdownList = [];
+
+        this.hours.forEach((hourItem) => {
+            this._minuteItems.filter((minute) => minute !== null).forEach((minuteItem) => {
+                let hour = this._itemToString(hourItem, 'hour');
+                let minute = this._itemToString(minuteItem, 'minute');
+                let date = this._convertMinMaxValue(`${hour}:${minute}`);
+                if (this._isValueValid(date)) {
+                    let item = this._formatTime(date, this.format, this.format.indexOf('tt') !== -1);
+                    dropdownList.push(item);
+                }
+            });
+        });
+
+        return dropdownList;
+    }
+
+    public toggleDropDown() {
+        this.dropdown.toggle(this.overlaySettings);
+    }
+
+    public onDropDownOpening() {
+        this.setCursorPosition(this.getCursorPosition());
+
+        const newSelection = this.dropdown.items.filter((item) => item.value === this.displayValue).reduce((a, b) => a.concat(b), []);
+        if (newSelection.length > 0 && this.dropdown.selectedItem && this.dropdown.selectedItem !== newSelection[0]) {
+
+            const newSelectedItem = newSelection[0];
+            this.dropdown.selectedItem.isSelected = false;
+
+            newSelectedItem.isSelected = true;
+            this.dropdown.scrollToHiddenItem(newSelectedItem);
+            this.cdr.detectChanges();
+        }
+    }
+
+    public onDropDownClose() {
+        const cursorPos = this.getCursorPosition();
+
+        if (this.dropdown.selectedItem) {
+            const sections = this.dropdown.selectedItem.value.split(/[\s:]+/);
+
+            const re = new RegExp(this.promptChar,"g");
+
+            let hour = sections[0].replace(re, '');
+            let minutes = sections[1].replace(re, '');
+            const amPM = sections[2];
+
+            const leadZeroHour = (parseInt(hour, 10) < 10 && !hour.startsWith('0')) || hour === '0';
+            const leadZeroMinutes = (parseInt(minutes, 10) < 10 && !minutes.startsWith('0')) || minutes === '0';
+
+            hour = leadZeroHour ? '0' + hour : hour;
+            minutes = leadZeroMinutes ? '0' + minutes : minutes;
+
+            this.displayValue = amPM ? `${hour}:${minutes} ${amPM}` : `${hour}:${minutes}`;
+            this.value = this._convertMinMaxValue(this.displayValue);
+        }
+
+        requestAnimationFrame(() => {
+            this.setCursorPosition(cursorPos);
+        });
+
+    }
+
+    public clear() {
+        this.displayValue = '';
+        this.value = null;
+
+        this.isValid = true;
+
+        if (this.dropdown.selectedItem) {
+            (this.dropdown.selectedItem as IgxDropDownItemComponent).isSelected = false;
+        }
+    }
+
+    public validateInputValue(): boolean {
+        const sections = this.displayValue.split(/[\s:]+/);
+
+        const re = new RegExp(this.promptChar,"g");
+
+        let hour = sections[0].replace(re, '');
+        let minutes = sections[1].replace(re, '');
+        const amPM = sections[2];
+
+        if (this.displayValue && this.displayValue === this.parseMask()) {
+            return true;
+        }
+
+        if (this.format.indexOf('tt') !== -1 && (!amPM || (amPM !== 'AM' && amPM !== 'PM'))) {
+            return false;
+        }
+
+        hour = hour.startsWith('0') && hour !== '0' ? hour.slice(1, 2) : hour;
+        minutes = minutes.startsWith('0') && minutes !== '0' ? minutes.slice(1, 2) : minutes;
+
+        if (this.validHourEntries.indexOf(parseInt(hour, 10)) !== -1 && this.validMinuteEntries.indexOf(parseInt(minutes, 10)) !== -1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public parseMask(): string {
+        const prompts = this.promptChar + this.promptChar;
+        return this.format.indexOf('tt') !== -1 ? `${prompts}:${prompts} ${prompts}` : `${prompts}:${prompts}`;
+    }
+
+    public onFocusChanged(event) {
+        const value = event.target.value;
+
+        this.displayValue = value;
+        this.value = value !== this.parseMask() ? this._convertMinMaxValue(value) : null;
+
+        this.isValid = this.validateInputValue();
+    }
+
+    public spinOnEdit(event) {
+        if (this.value && this.dropdown.collapsed) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            let upDownArrow: number;
+
+            if (event.code || event.key) {
+                upDownArrow = event.code === 'ArrowDown' || event.key === 'ArrowDown' ? -1 : 1;
+            }
+
+            if (event.wheelDelta) {
+                upDownArrow = event.wheelDelta === 120 ? 1 : -1;
+            }
+
+            const cursor = this.getCursorPosition();
+            const hDelta = this.itemsDelta.hours * 60 + (upDownArrow * this.value.getMinutes());
+            const mDelta = this.itemsDelta.minutes;
+
+            const min = this.minValue ? this._convertMinMaxValue(this.minValue) : this._convertMinMaxValue(this.dropdown.items[0].value);
+            const max =  this.maxValue ? this._convertMinMaxValue(this.maxValue) : this._convertMinMaxValue(this.dropdown.items[this.dropdown.items.length - 1].value);
+
+            if (HOURS_POS.indexOf(cursor) !== -1) {
+                this.value.setMinutes(upDownArrow * hDelta);
+            }
+
+            if (MINUTES_POS.indexOf(cursor) !== -1) {
+                this.value.setMinutes(this.value.getMinutes() + (upDownArrow * mDelta));
+            }
+
+            let displayValue = '';
+            if (this.value.getTime() > max.getTime()) {
+                displayValue = this.isSpinLoop ? this._formatTime(min, this.format) : this._formatTime(max, this.format);
+            } else if (this.value.getTime() < min.getTime()) {
+                displayValue = this.isSpinLoop ? this._formatTime(max, this.format) : this._formatTime(min, this.format);
+            } else {
+                if ((this.format.indexOf('hh') !== -1 || this.format.indexOf('h') !== -1) && this.format.indexOf('tt')) {
+
+                    if (this.displayValue.split(/[\s:]+/)[2] === 'PM' && this.value.getHours() < 11) {
+                        this.value.setHours(this.value.getHours() + 12);
+                    }
+                }
+                displayValue = this._formatTime(this.value, this.format);
+            }
+
+            if (AMPM_POS.indexOf(cursor) !== -1 && this.format.indexOf('tt') !== -1) {
+                const sections = this.displayValue.split(/[\s:]+/);
+
+                const hour = sections[0];
+                const minutes = sections[1];
+                let amPM = sections[2];
+                amPM = amPM === 'AM' ? 'PM' :'AM';
+
+                this.displayValue = `${hour}:${minutes} ${amPM}`;
+            }
+
+            this.displayValue = this.inputFormat.transform(displayValue);
+            this.value = this._convertMinMaxValue(this.displayValue);
+
+            setTimeout(() => {
+                this.setCursorPosition(cursor);
+            });
+        }
+    }
 }
+
+@Pipe({ name: "displayFormat" })
+export class TimeDisplayFormatPipe implements PipeTransform {
+
+    constructor(public timePicker: IgxTimePickerComponent) { }
+
+    transform(value: any): string {
+        const mask = this.timePicker.parseMask();
+        if (!value || value === mask) {
+            return mask;
+        }
+
+        const sections = value.split(/[\s:]+/);
+
+        let hour = sections[0];
+        let minutes = sections[1];
+        let amPM = sections[2];
+
+        const format = this.timePicker.format;
+        const prompt = this.timePicker.promptChar;
+        const regExp = new RegExp(this.timePicker.promptChar,"g");
+
+        if (format.indexOf('hh') !== -1 || format.indexOf('HH') !== -1 && hour.indexOf(prompt) !== -1) {
+            hour = hour === prompt + prompt ? '00' : hour.replace(regExp, '0');
+        }
+
+        if (format.indexOf('mm') !== -1 && hour.indexOf(prompt) !== -1) {
+            minutes = minutes === prompt + prompt ? '00' : minutes.replace(regExp, '0');
+        }
+
+        if (format.indexOf('hh') === -1 || format.indexOf('HH') === -1) {
+            hour = hour.indexOf(prompt) !== -1 ? hour.replace(regExp, '') : hour;
+
+            let hourVal = parseInt(hour, 10);
+            hour = !hourVal ? '0' : hourVal < 10 && hourVal !== 0 ? hour.replace('0', '') : hour;
+
+        }
+
+        if (format.indexOf('mm') === -1) {
+            minutes = minutes.indexOf(prompt) !== -1 ? minutes.replace(regExp, '') : minutes;
+
+            let minutesVal = parseInt(minutes, 10);
+            minutes = !minutesVal ? '0' : minutesVal < 10 && minutesVal !== 0 ? minutes.replace('0', '') : minutes;
+        }
+
+        if (format.indexOf('tt') !== -1 && (amPM !== 'AM' ||amPM !== 'PM')) {
+            amPM = amPM.indexOf('p') !== -1 || amPM.indexOf('P') !== -1 ? 'PM' : 'AM';
+        }
+
+        return amPM ? `${hour}:${minutes} ${amPM}` : `${hour}:${minutes}`;
+    }
+}
+
+@Pipe({ name: "inputFormat" })
+export class TimeInputFormatPipe implements PipeTransform {
+
+    constructor(public timePicker: IgxTimePickerComponent) { }
+
+    transform(value: any): string {
+        const mask = this.timePicker.parseMask();
+        if (!value || value === mask) {
+            return mask;
+        }
+
+        const sections = value.split(/[\s:]+/);
+
+        const prompt = this.timePicker.promptChar;
+        const regExp = new RegExp(prompt,"g");
+
+        let hour = sections[0].replace(regExp, '');
+        let minutes = sections[1].replace(regExp, '');
+        const amPM = sections[2];
+
+        const leadZeroHour = (parseInt(hour, 10) < 10 && !hour.startsWith('0')) || hour === '0';
+        const leadZeroMinutes = (parseInt(minutes, 10) < 10 && !minutes.startsWith('0')) || minutes === '0';
+
+        hour = leadZeroHour ? '0' + hour : hour;
+        minutes = leadZeroMinutes ? '0' + minutes : minutes;
+
+        return amPM ? `${hour}:${minutes} ${amPM}` : `${hour}:${minutes}`;
+    }
+}
+
 
 /**
  * The IgxTimePickerModule provides the {@link IgxTimePickerComponent} inside your application.
@@ -1057,17 +1472,25 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         IgxItemListDirective,
         IgxMinuteItemDirective,
         IgxAmPmItemDirective,
-        IgxTimePickerTemplateDirective
+        IgxTimePickerTemplateDirective,
+        TimeDisplayFormatPipe,
+        TimeInputFormatPipe
     ],
     exports: [
         IgxTimePickerComponent,
-        IgxTimePickerTemplateDirective
+        IgxTimePickerTemplateDirective,
+        TimeDisplayFormatPipe,
+        TimeInputFormatPipe
     ],
     imports: [
         CommonModule,
         IgxInputGroupModule,
         IgxDialogModule,
-        IgxIconModule
+        FormsModule,
+        IgxIconModule,
+        IgxDropDownModule,
+        IgxToggleModule,
+        IgxMaskModule
     ],
     providers: []
 })
