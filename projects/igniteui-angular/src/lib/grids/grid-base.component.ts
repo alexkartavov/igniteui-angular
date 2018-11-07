@@ -4377,9 +4377,6 @@ export abstract class IgxGridBaseComponent extends DisplayDensityBase implements
         return rowChanges ? Object.keys(rowChanges).length : 0;
     }
 
-    protected writeToData(rowIndex: number, value: any) {
-        mergeObjects(this.data[rowIndex], value);
-    }
     /**
      * TODO: Refactor
      * @hidden
