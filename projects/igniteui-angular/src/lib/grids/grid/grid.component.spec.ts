@@ -2555,6 +2555,72 @@ describe('IgxGrid Component Tests', () => {
                     cancel: false
                 });
             }));
+
+            it(`Should properly cancel grid row editing events`, () => {
+                const fixture = TestBed.createComponent(IgxGridWithEditingAndFeaturesComponent);
+                fixture.detectChanges();
+                const grid = fixture.componentInstance.grid;
+                const component = fixture.componentInstance;
+                const initFunc = (event) => { };
+                const cancelFunc = (event) => { event.cancel = true; };
+                // Cancel 'onRowEdit'
+                component.row_done_cb = cancelFunc;
+                const initialRow = grid.getRowByKey(0);
+                const initialData = Object.assign({}, initialRow.rowData);
+                const targetCell: IgxGridCellComponent = fixture.componentInstance.focusGridCell(0, 'Downloads');
+                spyOn(grid.onRowEdit, 'emit').and.callThrough();
+                spyOn(grid.onRowEditCancel, 'emit').and.callThrough();
+                spyOn(grid.onRowEditEnter, 'emit').and.callThrough();
+                targetCell.inEditMode = true;
+                fixture.detectChanges();
+                component.cellInEditMode.editValue = 1337;
+                fixture.detectChanges();
+                fixture.componentInstance.focusGridCell(0, 'ReleaseDate');
+                fixture.detectChanges();
+                grid.endEdit(true);
+                fixture.detectChanges();
+                expect(grid.rowEditingOverlay.collapsed).toBeFalsy();
+                expect(grid.onRowEdit.emit).toHaveBeenCalled();
+                expect(grid.data[0]).toEqual(initialData);
+                component.row_done_cb = initFunc;
+                // Cancel 'onRowEditCancel'
+                component.row_cancel_cb = cancelFunc;
+                grid.endEdit(false); // Grid is still in row edit
+                fixture.detectChanges();
+                expect(grid.rowEditingOverlay.collapsed).toBeFalsy();
+                expect(grid.onRowEditCancel.emit).toHaveBeenCalled();
+                expect(grid.data[0]).toEqual(initialData);
+                component.row_cancel_cb = initFunc;
+                grid.endEdit(false); // Grid is still in row edit
+                fixture.detectChanges();
+                expect(grid.rowEditingOverlay.collapsed).toBeTruthy();
+                // Cancel 'onRowEditEnter'
+                component.row_enter_cb = cancelFunc;
+                targetCell.inEditMode = true;
+                fixture.detectChanges();
+                expect(grid.rowEditingOverlay.collapsed).toBeTruthy();
+                expect(grid.onRowEditEnter.emit).toHaveBeenCalledTimes(2); // Initial + second
+            });
+
+            it(`Should be able to change row edit value by binding to 'onRowEdit' event`, () => {
+                const fixture = TestBed.createComponent(IgxGridWithEditingAndFeaturesComponent);
+                fixture.detectChanges();
+                const grid = fixture.componentInstance.grid;
+                const component = fixture.componentInstance;
+                const initialRow = grid.getRowByKey(0);
+                const initialData = Object.assign({}, initialRow.rowData);
+                const targetCell: IgxGridCellComponent = fixture.componentInstance.focusGridCell(0, 'Downloads');
+                targetCell.inEditMode = true;
+                fixture.detectChanges();
+                component.getCurrentEditCell().editValue = 2;
+                component.row_done_cb = (event) => {
+                    event.newValue.Downloads = 9999;
+                };
+                grid.endEdit(true);
+                fixture.detectChanges();
+                expect(grid.rowEditingOverlay.collapsed).toBeTruthy();
+                expect(grid.getRowByKey(0).rowData).toEqual(Object.assign(initialData, { Downloads: 9999 }));
+            });
         });
 
         describe('Row Editing - Column editable property', () => {
@@ -3365,7 +3431,11 @@ export class IgxGridRowEditingWithoutEditableColumnsComponent {
 
 @Component({
     template: `
-    <igx-grid #grid [data]="data" [primaryKey]="'ID'" width="700px" height="400px" [rowEditable]="true">
+    <igx-grid #grid [data]="data" [primaryKey]="'ID'" width="700px" height="400px"
+    (onRowEditEnter)="handleEvent($event, 'row-enter')" (onCellEditEnter)="handleEvent($event, 'cell-enter')"
+    (onRowEdit)="handleEvent($event, 'row-done')" (onCellEdit)="handleEvent($event, 'cell-done')"
+    (onRowEditCancel)="handleEvent($event, 'row-cancel')" (onCellEditCancel)="handleEvent($event, 'cell-cancel')"
+    [rowEditable]="true">
         <igx-column
         field="Downloads" header="Downloads" [dataType]="'number'" [pinned]="pinnedFlag" [editable]="true">
         </igx-column>
@@ -3397,11 +3467,17 @@ export class IgxGridRowEditingWithoutEditableColumnsComponent {
 export class IgxGridWithEditingAndFeaturesComponent {
     /* Data fields: Downloads:number, ID: number, ProductName: string, ReleaseDate: Date,
                 Released: boolean, Category: string, Items: string, Test: string. */
+    @ViewChild('grid', { read: IgxGridComponent }) public grid: IgxGridComponent;
     public pinnedFlag = false;
     public hiddenFlag = false;
     public columnGroupingFlag = false;
     public data = SampleTestData.generateProductData(11);
-    @ViewChild('grid', { read: IgxGridComponent }) public grid: IgxGridComponent;
+    public row_enter_cb: (a: any) => void = (a) => {};
+    public row_done_cb: (a: any) => void = (a) => {};
+    public row_cancel_cb: (a: any) => void = (a) => {};
+    public cell_done_cb: (a: any) => void = (a) => {};
+    public cell_enter_cb: (a: any) => void = (a) => {};
+    public cell_cancel_cb: (a: any) => void = (a) => {};
     public moveNext(shiftKey: boolean): void {
         this.getCurrentEditCell().dispatchEvent(new KeyboardEvent('keydown', {
             key: 'tab',
@@ -3431,6 +3507,37 @@ export class IgxGridWithEditingAndFeaturesComponent {
 
     public get cellInEditMode() {
         return this.gridAPI.get_cell_inEditMode(this.grid.id).cell;
+    }
+
+    public handleEvent(event, type) {
+        const args = type.split('-');
+        switch (args[0]) {
+            case 'row':
+                switch (args[1]) {
+                    case 'enter':
+                        this.row_enter_cb(event);
+                        break;
+                    case 'done':
+                        this.row_done_cb(event);
+                        break;
+                    case 'cancel':
+                        this.row_cancel_cb(event);
+                        break;
+                }
+                break;
+            case 'cell':
+                switch (args[1]) {
+                    case 'enter':
+                        this.cell_enter_cb(event);
+                        break;
+                    case 'done':
+                        this.cell_done_cb(event);
+                        break;
+                    case 'cancel':
+                        this.cell_cancel_cb(event);
+                        break;
+                }
+        }
     }
 }
 
