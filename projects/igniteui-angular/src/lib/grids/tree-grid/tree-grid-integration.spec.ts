@@ -25,7 +25,7 @@ import { IgxGridTransaction } from '../grid-base.component';
 
 const CSS_CLASS_BANNER = 'igx-banner';
 
-fdescribe('IgxTreeGrid - Integration', () => {
+describe('IgxTreeGrid - Integration', () => {
     configureTestSuite();
     let fix;
     let treeGrid: IgxTreeGridComponent;

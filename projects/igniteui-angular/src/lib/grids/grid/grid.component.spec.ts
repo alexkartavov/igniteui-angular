@@ -1103,9 +1103,9 @@ describe('IgxGrid Component Tests', () => {
                 expect(editRowTop - bannerBottom).toBeLessThan(2);
             }));
 
-            xit('Should add correct class to the edited row', (async () => {
+            it('Should add correct class to the edited row', (async () => {
                 // NOT APPLICABLE, SINCE GRID DOES NOT HAVE TRANSACTIONS
-                const fix = TestBed.createComponent(IgxGridRowEditingComponent);
+                const fix = TestBed.createComponent(IgxGridRowEditingTransactionComponent);
                 fix.detectChanges();
 
                 const grid = fix.componentInstance.grid;
@@ -1116,7 +1116,7 @@ describe('IgxGrid Component Tests', () => {
                 cell.inEditMode = true;
                 // expect(rowEditBanned) to be visible
                 cell.update('IG');
-                cell.inEditMode = false;
+                grid.endEdit(true);
 
                 await wait(DEBOUNCETIME);
 
@@ -2205,7 +2205,7 @@ describe('IgxGrid Component Tests', () => {
         });
 
         describe('Row Editing - Summaries', () => {
-            xit(`Should update summaries after row editing completes`, () => {
+            it(`Should update summaries after row editing completes`, () => {
                 // TO DO: FIX
                 // Enable Summaries
                 // Check row + column value
@@ -2213,18 +2213,20 @@ describe('IgxGrid Component Tests', () => {
                 // Edit row valuie
                 // SUBMIT ?
                 // Check summaries are updated
-                const newDate = new Date('01/01/1901');
+                const newDate = new Date('01/01/1990');
                 const fix = TestBed.createComponent(IgxGridRowEditingComponent);
                 fix.detectChanges();
 
                 const grid = fix.componentInstance.grid;
                 grid.enableSummaries('OrderDate');
+                grid.reflow();
                 const targetCell = grid.getCellByColumn(0, 'OrderDate');
 
                 targetCell.inEditMode = true;
                 // Bind to cell editor template value
-                (<any>grid).gridAPI.get_cell_inEditMode(grid.id).cell.value = newDate;
+                (<any>grid).gridAPI.get_cell_inEditMode(grid.id).cell.editValue = newDate;
                 // targetCell.update(newDate);
+                grid.endEdit(true);
                 fix.detectChanges();
                 grid.recalculateSummaries();
 
@@ -2232,8 +2234,7 @@ describe('IgxGrid Component Tests', () => {
                 const summaries = targetCell.gridAPI.get_summaries(targetCell.gridID);
                 const earliestDate = summaries.get('OrderDate')[1].summaryResult.toLocaleDateString();
 
-                expect(earliestDate).toEqual(newDate);
-                grid.disableSummaries('OrderDate');
+                expect(new Date(earliestDate).getTime()).toEqual(newDate.getTime());
             });
         });
 
@@ -2437,15 +2438,15 @@ describe('IgxGrid Component Tests', () => {
         });
 
         describe('Row Editing - Events', () => {
-            xit(`Should properly emit 'onRowEditDone' event - Button Click`, fakeAsync(() => {
+            it(`Should properly emit 'onRowEditDone' event - Button Click`, fakeAsync(() => {
                 const fixture = TestBed.createComponent(IgxGridWithEditingAndFeaturesComponent);
                 fixture.detectChanges();
                 fixture.componentInstance.pinnedFlag = true;
                 fixture.detectChanges();
                 const grid = fixture.componentInstance.grid;
                 const component = fixture.componentInstance;
-                const initialRow = grid.getRowByKey(0);
-                const initialData = Object.assign({}, initialRow.rowData);
+                const initialRow = grid.getRowByKey(0).rowID;
+                const initialData = Object.assign({}, grid.getRowByKey(0).rowData);
                 let targetCell: IgxGridCellComponent;
                 spyOn(grid.onRowEditCancel, 'emit');
                 spyOn(grid.onRowEdit, 'emit');
@@ -2460,12 +2461,12 @@ describe('IgxGrid Component Tests', () => {
                 expect(grid.onRowEdit.emit).toHaveBeenCalledWith({
                     newValue: Object.assign({}, initialData, { Downloads: 1337 }),
                     oldValue: initialData,
-                    row: initialRow,
+                    rowID: initialRow,
+                    cancel: false
                 });
-                fixture.destroy();
             }));
 
-            xit(`Should properly emit 'onRowEditCancel' event - Button Click`, fakeAsync(() => {
+            it(`Should properly emit 'onRowEditCancel' event - Button Click`, fakeAsync(() => {
                 const fixture = TestBed.createComponent(IgxGridWithEditingAndFeaturesComponent);
                 fixture.detectChanges();
                 fixture.componentInstance.pinnedFlag = true;
@@ -2476,11 +2477,12 @@ describe('IgxGrid Component Tests', () => {
                 const initialData = Object.assign({}, initialRow.rowData);
                 let targetCell: IgxGridCellComponent;
                 spyOn(grid.onRowEditCancel, 'emit');
-                spyOn(grid.onRowEdit, 'emit');
                 targetCell = fixture.componentInstance.focusGridCell(0, 'Downloads');
                 targetCell.inEditMode = true;
                 tick();
                 component.cellInEditMode.editValue = 1337;
+                fixture.detectChanges();
+                fixture.componentInstance.focusGridCell(0, 'ReleaseDate');
                 fixture.detectChanges();
                 // On button click
                 fixture.debugElement.queryAll(By.css('.igx-button--flat'))[0].nativeElement.click();
@@ -2488,12 +2490,12 @@ describe('IgxGrid Component Tests', () => {
                 expect(grid.onRowEditCancel.emit).toHaveBeenCalledWith({
                     newValue: Object.assign({}, initialData, { Downloads: 1337 }),
                     oldValue: initialRow.rowData,
-                    row: initialRow,
+                    rowID: initialRow.rowID,
+                    cancel: false
                 });
-                fixture.destroy();
             }));
 
-            xit(`Should properly emit 'onRowEditDone' event - Filtering`, fakeAsync(() => {
+            it(`Should properly emit 'onRowEditDone' event - Filtering`, fakeAsync(() => {
                 const fixture = TestBed.createComponent(IgxGridWithEditingAndFeaturesComponent);
                 fixture.detectChanges();
                 fixture.componentInstance.pinnedFlag = true;
@@ -2503,25 +2505,27 @@ describe('IgxGrid Component Tests', () => {
                 const initialRow = grid.getRowByKey(0);
                 const initalData = Object.assign({}, initialRow.rowData);
                 let targetCell: IgxGridCellComponent;
-                spyOn(grid.onRowEdit, 'emit');
+                spyOn(grid.onRowEditCancel, 'emit');
                 targetCell = fixture.componentInstance.focusGridCell(0, 'Downloads');
                 targetCell.inEditMode = true;
                 tick();
                 component.cellInEditMode.editValue = 1337;
                 fixture.detectChanges();
+                fixture.componentInstance.focusGridCell(0, 'ReleaseDate');
+                fixture.detectChanges();
                 // On filter
                 grid.filter('Downloads', 1330, IgxNumberFilteringOperand.instance().condition('greaterThan'), true);
                 fixture.detectChanges();
-                expect(grid.onRowEdit.emit).toHaveBeenCalled();
-                expect(grid.onRowEdit.emit).toHaveBeenCalledWith({
+                expect(grid.onRowEditCancel.emit).toHaveBeenCalled();
+                expect(grid.onRowEditCancel.emit).toHaveBeenCalledWith({
                     newValue: Object.assign({}, initalData, { Downloads: 1337 }),
                     oldValue: initalData,
-                    row: initialRow,
+                    rowID: initialRow.rowID,
+                    cancel: false
                 });
-                fixture.destroy();
             }));
 
-            xit(`Should properly emit 'onRowEditDone' event - Sorting`, fakeAsync(() => {
+            it(`Should properly emit 'onRowEditDone' event - Sorting`, fakeAsync(() => {
                 const fixture = TestBed.createComponent(IgxGridWithEditingAndFeaturesComponent);
                 fixture.detectChanges();
                 fixture.componentInstance.pinnedFlag = true;
@@ -2531,23 +2535,25 @@ describe('IgxGrid Component Tests', () => {
                 const initialRow = grid.getRowByKey(0);
                 const initialData = Object.assign({}, initialRow.rowData);
                 let targetCell: IgxGridCellComponent;
-                spyOn(grid.onRowEdit, 'emit');
+                spyOn(grid.onRowEditCancel, 'emit');
                 targetCell = fixture.componentInstance.focusGridCell(0, 'Downloads');
                 targetCell.inEditMode = true;
                 tick();
                 component.cellInEditMode.editValue = 1337;
                 fixture.detectChanges();
+                fixture.componentInstance.focusGridCell(0, 'ReleaseDate');
+                fixture.detectChanges();
                 // On sort
                 grid.sort({ fieldName: 'ProductName', dir: SortingDirection.Asc, ignoreCase: true,
                     strategy: DefaultSortingStrategy.instance() });
                 fixture.detectChanges();
-                expect(grid.onRowEdit.emit).toHaveBeenCalled();
-                expect(grid.onRowEdit.emit).toHaveBeenCalledWith({
+                expect(grid.onRowEditCancel.emit).toHaveBeenCalled();
+                expect(grid.onRowEditCancel.emit).toHaveBeenCalledWith({
                     newValue: Object.assign({}, initialData, { Downloads: 1337 }),
                     oldValue: initialData,
-                    row: initialRow,
+                    rowID: initialRow.rowID,
+                    cancel: false
                 });
-                fixture.destroy();
             }));
         });
 
