@@ -371,10 +371,6 @@ export class TreeGridFunctions {
                 } else {
                     newCell = treeGrid.getCellByColumn(rowIndex, columns[columnIndex + 1]);
                 }
-<<<<<<< HEAD
-=======
-
->>>>>>> remotes/origin/6.2.x
                 TreeGridFunctions.verifyTreeGridCellSelected(treeGrid, newCell);
                 expect(newCell.focused).toEqual(true);
 
@@ -424,19 +420,11 @@ export class TreeGridFunctions {
                 if (cell !== undefined && cell !== null) {
                     expect(cell.inEditMode).toBe(false);
                 }
-<<<<<<< HEAD
-
-=======
->>>>>>> remotes/origin/6.2.x
                 if (columnIndex === columns.length - 1) {
                     newCell = treeGrid.getCellByColumn(rowIndex + 1, columns[0]);
                 } else {
                     newCell = treeGrid.getCellByColumn(rowIndex, columns[columnIndex + 1]);
                 }
-<<<<<<< HEAD
-=======
-
->>>>>>> remotes/origin/6.2.x
                 expect(newCell.inEditMode).toBe(true);
                 resolve();
             })
@@ -457,19 +445,11 @@ export class TreeGridFunctions {
                 if (cell !== undefined && cell !== null) {
                     expect(cell.inEditMode).toBe(false);
                 }
-<<<<<<< HEAD
-
-=======
->>>>>>> remotes/origin/6.2.x
                 if (columnIndex === 0) {
                     newCell = treeGrid.getCellByColumn(rowIndex - 1, columns[columns.length - 1]);
                 } else {
                     newCell = treeGrid.getCellByColumn(rowIndex, columns[columnIndex - 1]);
                 }
-<<<<<<< HEAD
-=======
-
->>>>>>> remotes/origin/6.2.x
                 expect(newCell.inEditMode).toBe(true);
                 resolve();
             })
