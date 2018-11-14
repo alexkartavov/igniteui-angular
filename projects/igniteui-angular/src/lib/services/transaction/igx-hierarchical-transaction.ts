@@ -39,6 +39,26 @@ export class IgxHierarchicalTransactionService<T extends HierarchicalTransaction
                 }
             });
         }
+
+        if (currentState.type === TransactionType.DELETE) {
+            states.forEach((v: S, k: any) => {
+                if (v.path.indexOf(transaction.id) !== -1) {
+                    switch (v.type) {
+                        case TransactionType.ADD:
+                            states.delete(k);
+                            break;
+                        case TransactionType.UPDATE:
+                            states.get(k).type = TransactionType.DELETE;
+                            states.get(k).value = null;
+                    }
+                }
+            });
+        }
+    }
+
+    public commit(data: any[], childDataKey?: any, primaryKey?: any): void {
+        DataUtil.mergeHierarchicalTransactions(data, this.getAggregatedChanges(true), childDataKey, primaryKey, true);
+        this.clear();
     }
 
     public commit(data: any[], childDataKey?: any, primaryKey?: any): void {
