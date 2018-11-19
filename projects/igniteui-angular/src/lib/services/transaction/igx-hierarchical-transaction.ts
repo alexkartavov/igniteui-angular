@@ -29,21 +29,21 @@ export class IgxHierarchicalTransactionService<T extends HierarchicalTransaction
         const currentState = states.get(transaction.id);
         if (currentState) {
             currentState.path = transaction.path;
-        }
 
-        if (currentState.type === TransactionType.DELETE) {
-            states.forEach((v: S, k: any) => {
-                if (v.path.indexOf(transaction.id) !== -1) {
-                    switch (v.type) {
-                        case TransactionType.ADD:
-                            states.delete(k);
-                            break;
-                        case TransactionType.UPDATE:
-                            states.get(k).type = TransactionType.DELETE;
-                            states.get(k).value = null;
+            if (currentState.type === TransactionType.DELETE) {
+                states.forEach((v: S, k: any) => {
+                    if (v.path.indexOf(transaction.id) !== -1) {
+                        switch (v.type) {
+                            case TransactionType.ADD:
+                                states.delete(k);
+                                break;
+                            case TransactionType.UPDATE:
+                                states.get(k).type = TransactionType.DELETE;
+                                states.get(k).value = null;
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     }
 
