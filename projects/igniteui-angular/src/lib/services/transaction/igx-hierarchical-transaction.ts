@@ -20,14 +20,15 @@ export class IgxHierarchicalTransactionService<T extends HierarchicalTransaction
 
     protected updateState(states: Map<any, S>, transaction: T, recordRef?: any): void {
         super.updateState(states, transaction, recordRef);
-        const currentState = states.get(transaction.id);
-        if (currentState) {
-            currentState.path = transaction.path;
-        }
 
         //  if transaction has no path, e.g. flat data source, get out
         if (!transaction.path) {
             return;
+        }
+
+        const currentState = states.get(transaction.id);
+        if (currentState) {
+            currentState.path = transaction.path;
         }
 
         if (currentState.type === TransactionType.DELETE) {
