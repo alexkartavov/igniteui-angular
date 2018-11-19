@@ -679,7 +679,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         };
     }
 
-    private _formatTime(value: Date, format: string, addAmPm = false): string {
+    private _formatTime(value: Date, format: string): string {
         if (!value) {
             return '';
         } else {
@@ -711,10 +711,6 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
             }
 
             formattedMinute = minute < 10 && format.indexOf('mm') !== -1 ? '0' + minute : `${minute}`;
-
-            if (addAmPm) {
-                amPM = (hour > 11) ? 'PM' : 'AM';
-            }
 
             return format.replace('hh', formattedHour).replace('h', formattedHour)
                 .replace('HH', formattedHour).replace('H', formattedHour)
@@ -1085,13 +1081,13 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     }
 
 
+
     constructor(public cdr: ChangeDetectorRef) { }
 
     public displayValue: string = '';
     public isValid: boolean = true;
     public promptChar = '-';
     public mask: string;
-    public enableMask = true;
     public displayFormat = new TimeDisplayFormatPipe(this);
     public inputFormat = new TimeInputFormatPipe(this);
 
@@ -1203,7 +1199,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
                 let minute = this._itemToString(minuteItem, 'minute');
                 let date = this._convertMinMaxValue(`${hour}:${minute}`);
                 if (this._isValueValid(date)) {
-                    let item = this._formatTime(date, this.format, this.format.indexOf('tt') !== -1);
+                    let item = this._formatTime(date, this.format);
                     dropdownList.push(item);
                 }
             });
@@ -1220,14 +1216,14 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     public onDropDownOpening() {
         this.setCursorPosition(this.getCursorPosition());
 
-        const newSelection = this.dropdown.items.filter((item) => item.value === this.displayValue).reduce((a, b) => a.concat(b), []);
-        if (newSelection.length > 0 && this.dropdown.selectedItem && this.dropdown.selectedItem !== newSelection[0]) {
-
-            const newSelectedItem = newSelection[0];
+        if (this.dropdown.selectedItem) {
             this.dropdown.selectedItem.isSelected = false;
+        }
 
-            newSelectedItem.isSelected = true;
-            this.dropdown.scrollToHiddenItem(newSelectedItem);
+        const newSelection = this.dropdown.items.filter((item) => item.value === this.displayValue).reduce((a, b) => a.concat(b), [])[0];
+        if (newSelection) {
+            newSelection.isSelected = true;
+            this.dropdown.scrollToHiddenItem(newSelection);
             this.cdr.detectChanges();
         }
     }
@@ -1236,33 +1232,20 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         const cursorPos = this.getCursorPosition();
 
         if (this.dropdown.selectedItem) {
-            const sections = this.dropdown.selectedItem.value.split(/[\s:]+/);
+            this.isValid = true;
 
-            const re = new RegExp(this.promptChar,"g");
-
-            let hour = sections[0].replace(re, '');
-            let minutes = sections[1].replace(re, '');
-            const amPM = sections[2];
-
-            const leadZeroHour = (parseInt(hour, 10) < 10 && !hour.startsWith('0')) || hour === '0';
-            const leadZeroMinutes = (parseInt(minutes, 10) < 10 && !minutes.startsWith('0')) || minutes === '0';
-
-            hour = leadZeroHour ? '0' + hour : hour;
-            minutes = leadZeroMinutes ? '0' + minutes : minutes;
-
-            this.displayValue = amPM ? `${hour}:${minutes} ${amPM}` : `${hour}:${minutes}`;
+            this.displayValue = this.dropdown.selectedItem.value;
             this.value = this._convertMinMaxValue(this.displayValue);
         }
 
         requestAnimationFrame(() => {
             this.setCursorPosition(cursorPos);
         });
-
     }
 
     public clear() {
         this.displayValue = '';
-        this.value = null;
+        this._onChangeCallback(null);
 
         this.isValid = true;
 
@@ -1318,7 +1301,6 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
             event.stopPropagation();
 
             let upDownArrow: number;
-
             if (event.code || event.key) {
                 upDownArrow = event.code === 'ArrowDown' || event.key === 'ArrowDown' ? -1 : 1;
             }
@@ -1342,19 +1324,23 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
                 this.value.setMinutes(this.value.getMinutes() + (upDownArrow * mDelta));
             }
 
-            let displayValue = '';
-            if (this.value.getTime() > max.getTime()) {
-                displayValue = this.isSpinLoop ? this._formatTime(min, this.format) : this._formatTime(max, this.format);
-            } else if (this.value.getTime() < min.getTime()) {
-                displayValue = this.isSpinLoop ? this._formatTime(max, this.format) : this._formatTime(min, this.format);
-            } else {
-                if ((this.format.indexOf('hh') !== -1 || this.format.indexOf('h') !== -1) && this.format.indexOf('tt')) {
 
-                    if (this.displayValue.split(/[\s:]+/)[2] === 'PM' && this.value.getHours() < 11) {
-                        this.value.setHours(this.value.getHours() + 12);
-                    }
+            let displayVal = this.displayValue = this._formatTime(this.value, this.format);
+            if (this.value.getTime() > max.getTime()) {
+                displayVal = this.isSpinLoop ? this._formatTime(min, this.format) : this._formatTime(max, this.format);
+            }
+
+            if (this.value.getTime() < min.getTime()) {
+                displayVal = this.isSpinLoop ? this._formatTime(max, this.format) : this._formatTime(min, this.format);
+            }
+
+            if ((this.format.indexOf('hh') !== -1 || this.format.indexOf('h') !== -1) && this.format.indexOf('tt') !== -1) {
+
+                if (displayVal.split(/[\s:]+/)[2] === 'PM' && this.value.getHours() < 11) {
+                    this.value.setHours(this.value.getHours() + 12);
                 }
-                displayValue = this._formatTime(this.value, this.format);
+
+                displayVal = this._formatTime(this.value, this.format);
             }
 
             if (AMPM_POS.indexOf(cursor) !== -1 && this.format.indexOf('tt') !== -1) {
@@ -1365,13 +1351,13 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
                 let amPM = sections[2];
                 amPM = amPM === 'AM' ? 'PM' :'AM';
 
-                this.displayValue = `${hour}:${minutes} ${amPM}`;
+                displayVal = `${hour}:${minutes} ${amPM}`;
             }
 
-            this.displayValue = this.inputFormat.transform(displayValue);
+            this.displayValue = this.inputFormat.transform(displayVal);
             this.value = this._convertMinMaxValue(this.displayValue);
 
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 this.setCursorPosition(cursor);
             });
         }
