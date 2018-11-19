@@ -8,18 +8,18 @@
             <p class="sample-description">Detailed description to be added.</p>
             <div class="preview">
                 <!-- <igx-time-picker format="h:mm tt" ></igx-time-picker> -->
-                <igx-time-picker style="width: 300px" #picker
+                <igx-time-picker style="width: 200px" #picker
                                  [minValue]='min'
                                  [maxValue]='max'
                                  [isSpinLoop]="isSpinLoop"
                                  [mode]="mode"
+                                 [(ngModel)]="date"
                                  [itemsDelta]="itemsDelta"
                                  [format]="format" >
                 </igx-time-picker>
             </div>
         </article>
-        <div>{{picker.value}}</div>
-        <!-- <article class="timepicker-column">
+        <article class="timepicker-column">
             <h4 class="sample-title">Default Time Picker.</h4>
             <p class="sample-description">Detailed description to be added.</p>
             <div class="preview">
@@ -47,6 +47,7 @@
                     </ng-template>
                 </igx-time-picker>
             </div>
-        </article> -->
+        </article>
     </section>
+    <div class="timepicker-column">{{date}}</div>
 </div>

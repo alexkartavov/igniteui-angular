@@ -3,11 +3,12 @@
         <igx-prefix #prefix>
             <igx-icon>access_time</igx-icon>
         </igx-prefix>
-        <label igxLabel>Time</label>
+        <!-- <label igxLabel>Time</label> -->
         <input #input type="text" [igxMask]="mask"
                                   [displayValuePipe]="displayFormat"
                                   [inputValuePipe]="inputFormat" includeLiterals="false"
-                                  [promptChar]="promptChar" igxInput
+                                  [promptChar]="promptChar"
+                                  [placeholder]="'Time'" igxInput
                                   [value]="displayValue"
                                   (focus)="onFocusChanged($event)"
                                   (blur)="onFocusChanged($event)"

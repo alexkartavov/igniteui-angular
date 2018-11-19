@@ -504,10 +504,6 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
             this.dialogClosed = this._alert.toggleRef.onClosed.pipe().subscribe((ev) => this.handleDialogCloseAction());
         }
 
-        this.dialogOverlaySettings.outlet = this.outlet;
-        this.overlaySettings.outlet = this.outlet;
-        this.overlaySettings.positionStrategy.settings.target = this.prefix.el.nativeElement;
-
         if (this.group) {
             this.dropdown.width = this.group.element.nativeElement.getBoundingClientRect().width + 'px';
         }
@@ -1103,7 +1099,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
 
 
     @Input()
-    public mode = InteractionMode.dropdownInput;
+    public mode = InteractionMode.dialogPicker;
 
     @Input()
     public invalidTimeMessage = 'Enter a valid time value!';
@@ -1172,10 +1168,11 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         positionStrategy: new GlobalPositionStrategy(),
         scrollStrategy: new NoOpScrollStrategy(),
         modal: true,
+        outlet: this.outlet,
         closeOnOutsideClick: true
     };
 
-    private positionSettings = {
+    private positionSettings: PositionSettings = {
         horizontalStartPoint: HorizontalAlignment.Left,
         verticalStartPoint: VerticalAlignment.Bottom
     };
@@ -1184,6 +1181,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         modal: false,
         closeOnOutsideClick: true,
         scrollStrategy: new NoOpScrollStrategy(),
+        outlet: this.outlet,
         positionStrategy: new ConnectedPositioningStrategy(this.positionSettings)
     };
 
@@ -1215,6 +1213,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     }
 
     public toggleDropDown() {
+        this.overlaySettings.positionStrategy.settings.target = this.prefix.el.nativeElement;
         this.dropdown.toggle(this.overlaySettings);
     }
 
@@ -1404,11 +1403,11 @@ export class TimeDisplayFormatPipe implements PipeTransform {
             hour = hour === prompt + prompt ? '00' : hour.replace(regExp, '0');
         }
 
-        if (format.indexOf('mm') !== -1 && hour.indexOf(prompt) !== -1) {
+        if (format.indexOf('mm') !== -1 && minutes.indexOf(prompt) !== -1) {
             minutes = minutes === prompt + prompt ? '00' : minutes.replace(regExp, '0');
         }
 
-        if (format.indexOf('hh') === -1 || format.indexOf('HH') === -1) {
+        if (format.indexOf('hh') === -1 && format.indexOf('HH') === -1) {
             hour = hour.indexOf(prompt) !== -1 ? hour.replace(regExp, '') : hour;
 
             let hourVal = parseInt(hour, 10);
