@@ -78,6 +78,7 @@ export class IgxTreeGridAPIService extends GridBaseAPIService<IgxTreeGridCompone
         grid.expansionStates = expandedStates;
 
         if (isScrolledToBottom) {
+            grid.nativeElement.focus({preventScroll: true});
             grid.verticalScrollContainer.onChunkLoad
                 .pipe(first())
                 .subscribe(() => {
@@ -85,7 +86,7 @@ export class IgxTreeGridAPIService extends GridBaseAPIService<IgxTreeGridCompone
                         `[data-rowIndex="${groupRowIndex}"][data-visibleindex="${visibleColumnIndex}"]`).focus();
                 });
         }
-        if (expanded) {
+        if (expanded || (!expanded && isScrolledToBottom)) {
             grid.verticalScrollContainer.getVerticalScroll().dispatchEvent(new Event('scroll'));
             if (shouldScroll) {
                 grid.parentVirtDir.getHorizontalScroll().dispatchEvent(new Event('scroll'));
