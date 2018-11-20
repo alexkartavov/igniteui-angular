@@ -261,11 +261,12 @@ export class IgxTreeGridRowEditingTransactionComponent {
 
 @Component({
     template: `
-    <igx-tree-grid #treeGrid [data]="data" primaryKey="ID" foreignKey="ParentID" [rowEditable]="true" width="900px" height="600px">
+    <igx-tree-grid #treeGrid [data]="data" primaryKey="ID" childDataKey="Employees" [rowEditable]="true" width="900px" height="600px">
         <igx-column [field]="'ID'" dataType="number"></igx-column>
-        <igx-column [editable]="true" [field]="'ContactName'" dataType="string"></igx-column>
-        <igx-column [editable]="true" [field]="'CompanyName'" dataType="string"></igx-column>
-        <igx-column [editable]="true" [field]="'Phone'" dataType="number"></igx-column>
+        <igx-column [editable]="true" [field]="'Name'" dataType="string"></igx-column>
+        <igx-column [editable]="true" [field]="'HireDate'" dataType="date"></igx-column>
+        <igx-column [editable]="true" [field]="'Age'" dataType="number"></igx-column>
+        <igx-column [editable]="true" [field]="'OnPTO'" dataType="boolean"></igx-column>
     </igx-tree-grid>`
     , providers: [{ provide: IgxGridTransaction, useClass: IgxTransactionService }],
 })
