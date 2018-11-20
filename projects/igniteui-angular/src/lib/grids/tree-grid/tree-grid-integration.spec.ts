@@ -644,7 +644,7 @@ describe('IgxTreeGrid - Integration', () => {
             expect(trans.canUndo).toBe(false);
         }));
 
-        fit('Editing a cell is possible with Hierarchical DS', fakeAsync(() => {
+        it('Editing a cell is possible with Hierarchical DS', fakeAsync(() => {
             fix = TestBed.createComponent(IgxTreeGridRowEditingHierarchicalDSTransactionComponent);
             fix.detectChanges();
             treeGrid = fix.componentInstance.treeGrid as IgxTreeGridComponent;
