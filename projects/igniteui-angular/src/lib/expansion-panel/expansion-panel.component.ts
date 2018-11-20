@@ -63,11 +63,11 @@ export class IgxExpansionPanelComponent {
         public elementRef: ElementRef,
         private builder: AnimationBuilder) { }
 
-    @ContentChild(forwardRef(() => IgxExpansionPanelBodyComponent), { read: IgxExpansionPanelBodyComponent })
-    public body: IgxExpansionPanelBodyComponent;
+    @ContentChild(forwardRef(() => IgxExpansionPanelBodyComponent), { read: forwardRef(() => IgxExpansionPanelBodyComponent) })
+    public body;
 
-    @ContentChild(forwardRef(() => IgxExpansionPanelHeaderComponent), { read: IgxExpansionPanelHeaderComponent })
-    public header: IgxExpansionPanelHeaderComponent;
+    @ContentChild(forwardRef(() => IgxExpansionPanelHeaderComponent), { read: forwardRef(() => IgxExpansionPanelHeaderComponent) })
+    public header;
 
 
     private playOpenAnimation(cb: () => void) {

@@ -157,7 +157,7 @@ export class IgxTabItemComponent {
         return this._tabs.tabs.toArray().indexOf(this);
     }
 
-    constructor(@Inject(forwardRef(() => IgxTabsComponent)) private _tabs: IgxTabsComponent, private _element: ElementRef) {
+    constructor(@Inject(forwardRef(() => IgxTabsComponent)) private _tabs, private _element: ElementRef) {
         this._nativeTabItem = _element;
     }
 

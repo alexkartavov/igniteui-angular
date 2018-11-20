@@ -595,7 +595,7 @@ export class IgxDropDownItemNavigationDirective {
     private _target;
 
     constructor(private element: ElementRef,
-        @Inject(forwardRef(() => IgxDropDownComponent)) @Self() @Optional() public dropdown: IgxDropDownComponent) { }
+        @Inject(forwardRef(() => IgxDropDownComponent)) @Self() @Optional() public dropdown) { }
 
     /**
      * @hidden

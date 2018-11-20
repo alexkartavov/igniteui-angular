@@ -218,11 +218,11 @@ export enum DropPosition {
 export class IgxColumnMovingDragDirective extends IgxDragDirective {
 
     @Input('igxColumnMovingDrag')
-    set data(val: IgxColumnComponent) {
+    set data(val) {
         this._column = val;
     }
 
-    get column(): IgxColumnComponent {
+    get column() {
         return this._column;
     }
 

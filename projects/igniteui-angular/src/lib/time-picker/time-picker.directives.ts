@@ -30,7 +30,7 @@ export class IgxItemListDirective {
     public isActive: boolean;
 
     constructor(@Host() @Inject(forwardRef(() => IgxTimePickerComponent))
-                public timePicker: IgxTimePickerComponent,
+                public timePicker,
                 private elementRef: ElementRef) {}
 
     @HostBinding('attr.tabindex')
@@ -239,7 +239,7 @@ export class IgxHourItemDirective {
     }
 
     constructor(@Host() @Inject(forwardRef(() => IgxTimePickerComponent))
-                public timePicker: IgxTimePickerComponent,
+                public timePicker,
                 private itemList: IgxItemListDirective) {}
 
     @HostListener('click', ['value'])
@@ -281,7 +281,7 @@ export class IgxMinuteItemDirective {
     }
 
     constructor(@Host() @Inject(forwardRef(() => IgxTimePickerComponent))
-                public timePicker: IgxTimePickerComponent,
+                public timePicker,
                 private itemList: IgxItemListDirective) {}
 
     @HostListener('click', ['value'])
@@ -323,7 +323,7 @@ export class IgxAmPmItemDirective {
     }
 
     constructor(@Host() @Inject(forwardRef(() => IgxTimePickerComponent))
-                public timePicker: IgxTimePickerComponent,
+                public timePicker,
                 private itemList: IgxItemListDirective) {}
 
     @HostListener('click', ['value'])

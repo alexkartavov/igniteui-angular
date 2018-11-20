@@ -61,7 +61,7 @@ export class IgxListItemComponent implements IListChild {
 
     constructor(
         @Inject(forwardRef(() => IgxListComponent))
-        public list: IgxListComponent,
+        public list,
         private elementRef: ElementRef,
         private _renderer: Renderer2) {
     }

@@ -33,7 +33,7 @@ export class IgxInputDirective implements AfterViewInit, OnDestroy {
 
     constructor(
         @Inject(forwardRef(() => IgxInputGroupComponent))
-        public inputGroup: IgxInputGroupComponent,
+        public inputGroup,
         @Optional() @Self() @Inject(NgModel) protected ngModel: NgModel,
         @Optional() @Self() @Inject(FormControlName) protected formControl: FormControlName,
         protected element: ElementRef,

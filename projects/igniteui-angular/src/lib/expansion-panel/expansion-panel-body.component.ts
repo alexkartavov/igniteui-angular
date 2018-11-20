@@ -11,7 +11,7 @@ export class IgxExpansionPanelBodyComponent implements OnInit {
     private _labelledBy = '';
     private _label = '';
     constructor(@Inject(forwardRef(() => IgxExpansionPanelComponent))
-    public panel: IgxExpansionPanelComponent, public element: ElementRef,
+    public panel, public element: ElementRef,
     public cdr: ChangeDetectorRef) {
     }
     @HostBinding('class.igx-expansion-panel__body')

@@ -30,9 +30,9 @@ export class IgxRowEditTabStopDirective {
         return this.grid.rowEditTabs;
     }
     constructor(
-        @Inject(forwardRef(() => IgxGridBaseComponent)) public grid: IgxGridBaseComponent,
+        @Inject(forwardRef(() => IgxGridBaseComponent)) public grid,
         public element: ElementRef,
-        @Inject(forwardRef(() => IgxGridNavigationService)) public navigationService: IgxGridNavigationService) {}
+        @Inject(forwardRef(() => IgxGridNavigationService)) public navigationService) {}
     @HostListener('keydown.Tab', [`$event`])
     @HostListener('keydown.Shift.Tab', [`$event`])
     public handleTab(event: KeyboardEvent): void {

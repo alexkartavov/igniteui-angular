@@ -20,7 +20,7 @@ enum ButtonStyle {
 
 export class IgxRightButtonStyleDirective {
     constructor(@Host() @Inject(forwardRef(() => IgxTabsComponent))
-    public tabs: IgxTabsComponent) {
+    public tabs) {
     }
 
     private getRightButtonStyle() {
@@ -63,7 +63,7 @@ export class IgxRightButtonStyleDirective {
 
 export class IgxLeftButtonStyleDirective {
     constructor(@Host() @Inject(forwardRef(() => IgxTabsComponent))
-    public tabs: IgxTabsComponent) {
+    public tabs) {
     }
 
     private getLeftButtonStyle() {

@@ -122,7 +122,7 @@ export class IgxTabsGroupComponent implements AfterContentInit, AfterViewChecked
 
     constructor(
         @Inject(forwardRef(() => IgxTabsComponent))
-        private _tabs: IgxTabsComponent,
+        private _tabs,
         private _element: ElementRef) {
     }
 

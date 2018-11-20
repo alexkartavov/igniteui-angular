@@ -13,7 +13,9 @@ import {
     HostListener,
     Input,
     Output,
-    TemplateRef
+    TemplateRef,
+    forwardRef,
+    Inject
 } from '@angular/core';
 import { ICalendarDate } from './calendar';
 import { IgxCalendarComponent } from './calendar.component';
@@ -46,7 +48,7 @@ export class IgxCalendarYearDirective {
         return this.calendar.isCurrentYear(this.value);
     }
 
-    constructor(@Host() public calendar: IgxCalendarComponent) {}
+    constructor(@Host() @Inject(forwardRef(() => IgxCalendarComponent)) public calendar) {}
 
     @HostListener('click')
     public onClick() {
@@ -82,7 +84,7 @@ export class IgxCalendarMonthDirective {
         return this.calendar.isCurrentMonth(this.value);
     }
 
-    constructor(@Host() public calendar: IgxCalendarComponent) {}
+    constructor(@Host() @Inject(forwardRef(() => IgxCalendarComponent)) public calendar) {}
 
     @HostListener('click')
     public onClick() {
@@ -203,7 +205,7 @@ export class IgxCalendarDateDirective {
 
     private _selected = false;
 
-    constructor(@Host() public calendar: IgxCalendarComponent, private elementRef: ElementRef) { }
+    constructor(@Host() @Inject(forwardRef(() => IgxCalendarComponent)) public calendar, private elementRef: ElementRef) { }
 
     @HostListener('click')
     @HostListener('keydown.enter')

@@ -19,7 +19,7 @@ export class IgxComboFilteringPipe implements PipeTransform {
 
     constructor(
         @Inject(forwardRef(() => IgxComboComponent))
-        public combo: IgxComboComponent
+        public combo
     ) { }
 
     public transform(collection: any[], expressions: IFilteringExpression[],
@@ -76,7 +76,7 @@ export class IgxComboGroupingPipe implements PipeTransform {
 
     constructor(
         @Inject(forwardRef(() => IgxComboComponent))
-        public combo: IgxComboComponent
+        public combo
     ) { }
 
     public transform(collection: any[], groupKey: any) {

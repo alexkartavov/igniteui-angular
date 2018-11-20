@@ -26,7 +26,7 @@ export class IgxComboDropDownComponent extends IgxDropDownBase implements OnDest
         protected cdr: ChangeDetectorRef,
         protected selection: IgxSelectionAPIService,
         @Inject(forwardRef(() => IgxComboComponent))
-        public combo: IgxComboComponent) {
+        public combo) {
         super(elementRef, cdr, selection);
     }
 
