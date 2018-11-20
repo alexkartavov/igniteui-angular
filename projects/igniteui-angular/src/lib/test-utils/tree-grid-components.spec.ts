@@ -1,7 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { IgxTreeGridComponent } from '../grids/tree-grid/tree-grid.component';
 import { SampleTestData } from './sample-test-data.spec';
-import { IgxTransactionService } from '../../public_api';
+import { IgxTransactionService, IgxHierarchicalTransactionService } from '../../public_api';
 import { IgxGridTransaction } from '../grids/grid-base.component';
 
 @Component({
@@ -268,7 +268,7 @@ export class IgxTreeGridRowEditingTransactionComponent {
         <igx-column [editable]="true" [field]="'Age'" dataType="number"></igx-column>
         <igx-column [editable]="true" [field]="'OnPTO'" dataType="boolean"></igx-column>
     </igx-tree-grid>`
-    , providers: [{ provide: IgxGridTransaction, useClass: IgxTransactionService }],
+    , providers: [{ provide: IgxGridTransaction, useClass: IgxHierarchicalTransactionService }],
 })
 export class IgxTreeGridRowEditingHierarchicalDSTransactionComponent {
     public data = SampleTestData.employeeAllTypesTreeData();
