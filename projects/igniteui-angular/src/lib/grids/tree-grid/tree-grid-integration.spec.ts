@@ -5,7 +5,8 @@ import { IgxTreeGridModule, IgxTreeGridRowComponent } from './index';
 import {
     IgxTreeGridSimpleComponent, IgxTreeGridPrimaryForeignKeyComponent,
     IgxTreeGridStringTreeColumnComponent, IgxTreeGridDateTreeColumnComponent, IgxTreeGridBooleanTreeColumnComponent,
-    IgxTreeGridRowEditingComponent
+    IgxTreeGridRowEditingComponent, IgxTreeGridRowEditingTransactionComponent,
+    IgxTreeGridRowEditingHierarchicalDSTransactionComponent
 } from '../../test-utils/tree-grid-components.spec';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TreeGridFunctions } from '../../test-utils/tree-grid-functions.spec';
@@ -33,7 +34,9 @@ describe('IgxTreeGrid - Integration', () => {
                 IgxTreeGridStringTreeColumnComponent,
                 IgxTreeGridDateTreeColumnComponent,
                 IgxTreeGridBooleanTreeColumnComponent,
-                IgxTreeGridRowEditingComponent
+                IgxTreeGridRowEditingComponent,
+                IgxTreeGridRowEditingTransactionComponent,
+                IgxTreeGridRowEditingHierarchicalDSTransactionComponent
             ],
             imports: [NoopAnimationsModule, IgxToggleModule, IgxTreeGridModule],
             providers: [
@@ -516,27 +519,66 @@ describe('IgxTreeGrid - Integration', () => {
             expect(editedParentCell.value).toEqual(80);
         });
 
-        it('Children are transformed into parent nodes after their parent is deleted', () => {
-            // TODO:
-            // 1. Set 'Cascade On Delete' to false on a grid with Flat DS
-            // 2. Delete a parent node
-            // 3. Verify the correct style is applied before committing
-            // 4. Commit changes
-            // 5. Verify the correct style is applied after committing
-            // 6. Verify its children are transformed into parent nodes
-            // and are placed at the correct place in the grid
-            // 7. Verify the undo stack is empty
-        });
+        it('Children are transformed into parent nodes after their parent is deleted', fakeAsync(() => {
+            fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
+            fix.detectChanges();
+            treeGrid = fix.componentInstance.treeGrid as IgxTreeGridComponent;
 
-        it('Children are deleted along with their parent', () => {
-            // TODO:
-            // 1. Set 'Cascade On Delete' to true on a grid with Flat DS
-            // 2. Delete a parent node
-            // 3. Verify the correct style is applied before committing to all nodes
-            // 4. Commit changes
-            // 5. Verify the parent node and its children are deleted
-            // 6. Verify the undo stack is empty
-        });
+            const row: HTMLElement = treeGrid.getRowByIndex(0).nativeElement;
+            treeGrid.cascadeOnDelete = false;
+            const trans = treeGrid.transactions;
+
+            treeGrid.deleteRowById(1);
+            fix.detectChanges();
+            tick();
+
+            expect(row.classList).toContain('igx-grid__tr--deleted');
+            expect(treeGrid.getRowByKey(1).index).toBe(0);
+            expect(treeGrid.getRowByKey(2).index).toBe(1);
+            expect(treeGrid.getRowByKey(3).index).toBe(2);
+            trans.commit(treeGrid.data);
+            tick();
+
+            expect(row.classList).not.toContain('igx-grid__tr--deleted');
+            expect(treeGrid.getRowByKey(2).index).toBe(0);
+            expect(treeGrid.getRowByKey(3).index).toBe(1);
+            expect(trans.canUndo).toBe(false);
+        }));
+
+        it('Children are deleted along with their parent', fakeAsync(() => {
+            fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
+            fix.detectChanges();
+            treeGrid = fix.componentInstance.treeGrid as IgxTreeGridComponent;
+            treeGrid.cascadeOnDelete = true;
+            const trans = treeGrid.transactions;
+
+            treeGrid.deleteRowById(1);
+            fix.detectChanges();
+            tick();
+
+            for (let i = 0; i < 5; i++) {
+                const curRow: HTMLElement = treeGrid.getRowByIndex(i).nativeElement;
+                expect(curRow.classList).toContain('igx-grid__tr--deleted');
+            }
+            expect(treeGrid.getRowByKey(1).index).toBe(0);
+            expect(treeGrid.getRowByKey(2).index).toBe(1);
+            expect(treeGrid.getRowByKey(3).index).toBe(2);
+            expect(treeGrid.getRowByKey(7).index).toBe(3);
+            expect(treeGrid.getRowByKey(4).index).toBe(4);
+
+            trans.commit(treeGrid.data);
+            tick();
+
+            expect(treeGrid.getRowByKey(1)).toBeUndefined();
+            expect(treeGrid.getRowByKey(2)).toBeUndefined();
+            expect(treeGrid.getRowByKey(3)).toBeUndefined();
+            expect(treeGrid.getRowByKey(7)).toBeUndefined();
+            expect(treeGrid.getRowByKey(4)).toBeUndefined();
+
+            expect(treeGrid.getRowByKey(6).index).toBe(0);
+            expect(treeGrid.getRowByKey(10).index).toBe(1);
+            expect(trans.canUndo).toBe(false);
+        }));
 
         it('Editing a cell is posible with Hierarchical DS', () => {
             // TODO:
@@ -559,16 +601,32 @@ describe('IgxTreeGrid - Integration', () => {
             // 7. Verify the changes are comitted
         });
 
-        it('Add parent node to a Flat DS tree grid', () => {
-            // TODO:
-            // 1. Add a row at level 0 to the grid
-            // 2. Verify the new row is pending with the correct styles
-            // 3. Commit
-            // 4. verify the row is committed, the styles are OK and the Undo stack is empty
-            // 5. Add another row at level 0
-            // 6. verify the pending styles is applied only to the newly added row
-            // and not to the previously added row
-        });
+        it('Add parent node to a Flat DS tree grid', fakeAsync(() => {
+            fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
+            fix.detectChanges();
+            treeGrid = fix.componentInstance.treeGrid as IgxTreeGridComponent;
+            const trans = treeGrid.transactions;
+
+            treeGrid.addRow({ ID: 11, ParentID: -1, Name: 'Dan Kolov', JobTitle: 'wrestler', Age: 32 });
+            fix.detectChanges();
+            tick();
+
+            expect(trans.canUndo).toBe(true);
+            expect(treeGrid.getRowByKey(11).nativeElement.classList).toContain('igx-grid__tr--edited');
+
+            trans.commit(treeGrid.data);
+            tick();
+
+            expect(treeGrid.getRowByKey(11).nativeElement.classList).not.toContain('igx-grid__tr--edited');
+            expect(trans.canUndo).toBe(false);
+
+            treeGrid.addRow({ ID: 12, ParentID: -1, Name: 'Kubrat Pulev', JobTitle: 'Boxer', Age: 33 });
+            fix.detectChanges();
+            tick();
+
+            expect(trans.canUndo).toBe(true);
+            expect(treeGrid.getRowByKey(12).nativeElement.classList).toContain('igx-grid__tr--edited');
+        }));
 
         it('Add parent node to a Hierarchical DS tree grid', () => {
             // TODO:
