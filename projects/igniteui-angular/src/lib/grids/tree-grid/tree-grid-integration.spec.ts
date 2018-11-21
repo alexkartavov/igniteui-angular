@@ -564,10 +564,9 @@ describe('IgxTreeGrid - Integration', () => {
 
             const childCell = grid.getCellByColumn(0, 'Age');
             const childRowID = childCell.row.rowID;
+            childCell.update(14);
             const parentCell = grid.getCellByColumn(1, 'Age');
             const parentRowID = parentCell.row.rowID;
-
-            childCell.update(14);
             parentCell.update(80);
             fix.detectChanges();
 
@@ -669,7 +668,7 @@ describe('IgxTreeGrid - Integration', () => {
             expect(targetCell.nativeElement.classList).toContain('igx-grid__td--edited');
 
             // Commit
-            trans.commit(treeGrid.data);
+            trans.commit(treeGrid.data, treeGrid.childDataKey, treeGrid.primaryKey);
             tick();
 
             // Verify the correct value is set
