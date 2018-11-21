@@ -581,7 +581,9 @@ describe('IgxTreeGrid - Integration', () => {
             const editedParentCell = parentRow.cells.filter(c => c.column.field === 'Age')[0];
             expect(editedParentCell.value).toEqual(80);
         });
+    });
 
+    describe('Batch Editing', () => {
         it('Children are transformed into parent nodes after their parent is deleted', fakeAsync(() => {
             fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
             fix.detectChanges();
@@ -824,58 +826,6 @@ describe('IgxTreeGrid - Integration', () => {
             expect(treeGrid.getRowByKey(13).nativeElement.classList).toContain('igx-grid__tr--edited');
         });
 
-        it('Add a child node to a previously added parent node - Hierarchical DS - empty ChildDataKey -commit', () => {
-            fix = TestBed.createComponent(IgxTreeGridRowEditingHierarchicalDSTransactionComponent);
-            fix.detectChanges();
-            treeGrid = fix.componentInstance.treeGrid as IgxTreeGridComponent;
-            const trans = treeGrid.transactions;
-            const rootRow = {
-                ID: 11,
-                Name: 'Kubrat Pulev',
-                HireDate: new Date(2018, 10, 20),
-                Age: 32,
-                OnPTO: false,
-                Employees: []
-            };
-
-            const childRow = {
-                ID: 12,
-                Name: 'Tervel Pulev',
-                HireDate: new Date(2018, 10, 10),
-                Age: 30,
-                OnPTO: true,
-                Employees: []
-            };
-
-            const grandChildRow = {
-                ID: 13,
-                Name: 'Asparuh Pulev',
-                HireDate: new Date(2017, 10, 10),
-                Age: 14,
-                OnPTO: true,
-                Employees: []
-            };
-
-            treeGrid.addRow(rootRow);
-            treeGrid.addRow(childRow, 11);
-
-            expect(treeGrid.getRowByKey(11).nativeElement.classList).toContain('igx-grid__tr--edited');
-            expect(treeGrid.getRowByKey(12).nativeElement.classList).toContain('igx-grid__tr--edited');
-
-            trans.commit(treeGrid.data);
-
-            expect(treeGrid.getRowByKey(11).nativeElement.classList).not.toContain('igx-grid__tr--edited');
-            expect(treeGrid.getRowByKey(12).nativeElement.classList).not.toContain('igx-grid__tr--edited');
-
-            treeGrid.addRow(grandChildRow, 12);
-
-            expect(treeGrid.getRowByKey(11).nativeElement.classList).not.toContain('igx-grid__tr--edited');
-            expect(treeGrid.getRowByKey(12).nativeElement.classList).not.toContain('igx-grid__tr--edited');
-            expect(treeGrid.getRowByKey(13).nativeElement.classList).toContain('igx-grid__tr--edited');
-            expect(treeGrid.records.get(11).level).toBe(0);
-            expect(treeGrid.records.get(12).level).toBe(1);
-            expect(treeGrid.records.get(13).level).toBe(2);
-
         it('Add a child node to a previously added parent node - Hierarchical DS', () => {
             fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
             fix.detectChanges();
@@ -1103,7 +1053,6 @@ describe('IgxTreeGrid - Integration', () => {
             expect(trans.add).toHaveBeenCalled();
             expect(trans.add).toHaveBeenCalledTimes(2);
             expect(trans.add).toHaveBeenCalledWith(transPasrams, null);
-
         }));
     });
 });
