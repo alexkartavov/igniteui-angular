@@ -564,10 +564,9 @@ describe('IgxTreeGrid - Integration', () => {
 
             const childCell = grid.getCellByColumn(0, 'Age');
             const childRowID = childCell.row.rowID;
+            childCell.update(14);
             const parentCell = grid.getCellByColumn(1, 'Age');
             const parentRowID = parentCell.row.rowID;
-
-            childCell.update(14);
             parentCell.update(80);
             fix.detectChanges();
 
@@ -669,7 +668,7 @@ describe('IgxTreeGrid - Integration', () => {
             expect(targetCell.nativeElement.classList).toContain('igx-grid__td--edited');
 
             // Commit
-            trans.commit(treeGrid.data);
+            trans.commit(treeGrid.data, treeGrid.childDataKey, treeGrid.primaryKey);
             tick();
 
             // Verify the correct value is set
@@ -877,6 +876,41 @@ describe('IgxTreeGrid - Integration', () => {
             expect(treeGrid.records.get(12).level).toBe(1);
             expect(treeGrid.records.get(13).level).toBe(2);
 
+        it('Add a child node to a previously added parent node - Hierarchical DS', () => {
+            fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
+            fix.detectChanges();
+            treeGrid = fix.componentInstance.treeGrid as IgxTreeGridComponent;
+            const rowData = {
+                parent: { ID: 13, Name: 'Dr. Evil', JobTitle: 'Doctor of Evilness', Age: 52 },
+                child: { ID: 133, Name: 'Scott', JobTitle: `Annoying Teen, Dr. Evil's son`, Age: 17 },
+                grandChild: { ID: 1337, Name: 'Mr. Bigglesworth', JobTitle: 'Evil Cat', Age: 13 }
+            };
+            // 1. Add a row at level 0 to the grid
+            treeGrid.addRow(rowData.parent);
+            // 2. Add a child row to that parent
+            treeGrid.addRow(rowData.child, rowData.parent.ID);
+            // 3. Verify the new rows are pending with the correct styles
+            expect(treeGrid.getRowByKey(13).nativeElement.classList).toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.getRowByKey(133).nativeElement.classList).toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.data.findIndex(e => e.ID === rowData.parent.ID)).toEqual(-1);
+            expect(treeGrid.data.findIndex(e => e.ID === rowData.child.ID)).toEqual(-1);
+            expect(treeGrid.transactions.getAggregatedChanges(true).length).toEqual(2);
+            // 4. Commit
+            treeGrid.transactions.commit(treeGrid.data, treeGrid.childDataKey, treeGrid.primaryKey);
+            // 5. verify the rows are committed, the styles are OK
+            expect(treeGrid.data.findIndex(e => e.ID === rowData.parent.ID)).not.toEqual(-1);
+            expect(treeGrid.data.findIndex(e => e.ID === rowData.child.ID)).not.toEqual(-1);
+            expect(treeGrid.getRowByKey(13).nativeElement.classList).not.toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.getRowByKey(133).nativeElement.classList).not.toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.transactions.getAggregatedChanges(true).length).toEqual(0);
+            // 6. Add another child row at level 2 (grand-child of the first row)
+            treeGrid.addRow(rowData.grandChild, rowData.child.ID);
+            // 7. verify the pending styles is applied only to the newly added row
+            // and not to the previously added rows
+            expect(treeGrid.getRowByKey(13).nativeElement.classList).not.toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.getRowByKey(133).nativeElement.classList).not.toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.getRowByKey(1337).nativeElement.classList).toContain(`igx-grid__tr--edited`);
+            expect(treeGrid.transactions.getAggregatedChanges(true).length).toEqual(1);
         });
 
         it('Delete a pending parent node - Flat DS', () => {

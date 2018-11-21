@@ -2222,7 +2222,7 @@ describe('IgxGrid Component Tests', () => {
         });
 
         describe('Row Editing - Summaries', () => {
-            it(`Should update summaries after row editing completes`, () => {
+            it(`Should update summaries after row editing completes`, async () => {
                 // TO DO: FIX
                 // Enable Summaries
                 // Check row + column value
@@ -2237,6 +2237,7 @@ describe('IgxGrid Component Tests', () => {
                 const grid = fix.componentInstance.grid;
                 grid.enableSummaries('OrderDate');
                 grid.reflow();
+                await wait(DEBOUNCETIME);
                 const targetCell = grid.getCellByColumn(0, 'OrderDate');
 
                 targetCell.inEditMode = true;
@@ -2245,8 +2246,9 @@ describe('IgxGrid Component Tests', () => {
                 // targetCell.update(newDate);
                 grid.endEdit(true);
                 fix.detectChanges();
-                grid.recalculateSummaries();
 
+                grid.recalculateSummaries();
+                await wait(DEBOUNCETIME);
                 // get the summaries for a particular column
                 const summaries = targetCell.gridAPI.get_summaries(targetCell.gridID);
                 const earliestDate = summaries.get('OrderDate')[1].summaryResult.toLocaleDateString();
