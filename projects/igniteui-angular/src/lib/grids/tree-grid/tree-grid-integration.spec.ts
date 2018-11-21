@@ -875,6 +875,7 @@ describe('IgxTreeGrid - Integration', () => {
             expect(treeGrid.records.get(11).level).toBe(0);
             expect(treeGrid.records.get(12).level).toBe(1);
             expect(treeGrid.records.get(13).level).toBe(2);
+        });
 
         it('Add a child node to a previously added parent node - Hierarchical DS', () => {
             fix = TestBed.createComponent(IgxTreeGridRowEditingTransactionComponent);
@@ -1105,5 +1106,13 @@ describe('IgxTreeGrid - Integration', () => {
             expect(trans.add).toHaveBeenCalledWith(transPasrams, null);
 
         }));
+
+        it('Add row to empty grid - Hierarchical DS', () => {
+            // TODO
+        });
+
+        it('Add row to empty grid - Flat DS', () => {
+            // TODO
+        });
     });
 });
