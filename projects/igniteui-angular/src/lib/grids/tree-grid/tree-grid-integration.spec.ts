@@ -1054,5 +1054,13 @@ describe('IgxTreeGrid - Integration', () => {
             expect(trans.add).toHaveBeenCalledTimes(2);
             expect(trans.add).toHaveBeenCalledWith(transPasrams, null);
         }));
+
+        it('Add row to empty grid - Hierarchical DS', () => {
+            // TODO
+        });
+
+        it('Add row to empty grid - Flat DS', () => {
+            // TODO
+        });
     });
 });
