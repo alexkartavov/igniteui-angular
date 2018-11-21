@@ -11,11 +11,11 @@ export class TimePickerSampleComponent {
     max = "19:00";
     min = "09:00";
     itemsDelta = { hours: 1, minutes: 15 };
-    format="HH:mm";
+    format="hh:mm tt";
     isSpinLoop = true;
-    mode = InteractionMode.dropdownInput;
+    mode = InteractionMode.dropdown;
 
-    date = null;
+    date = new Date();
 
     @ViewChild("picker")
     public picker: IgxTimePickerComponent;

@@ -40,10 +40,10 @@ import { IgxDropDownModule, IgxDropDownComponent } from '../drop-down/drop-down.
 import { ConnectedPositioningStrategy, GlobalPositionStrategy } from '../services/overlay/position';
 import { NoOpScrollStrategy } from '../services/overlay/scroll';
 import { HorizontalAlignment, VerticalAlignment, PositionSettings, OverlaySettings } from '../services/overlay/utilities';
-import { IgxToggleModule, IgxOverlayOutletDirective, IgxToggleDirective } from '../directives/toggle/toggle.directive';
+import { IgxToggleModule, IgxOverlayOutletDirective } from '../directives/toggle/toggle.directive';
 import { IgxPrefixDirective } from '../input-group';
 import { IgxMaskModule } from '../directives/mask/mask.directive';
-import { IgxDropDownItemComponent, IgxDropDownItemBase } from '../drop-down/drop-down-item.component';
+import { IgxDropDownItemComponent } from '../drop-down/drop-down-item.component';
 
 let NEXT_ID = 0;
 const HOURS_POS = [0, 1, 2];
@@ -51,8 +51,8 @@ const MINUTES_POS = [3, 4, 5];
 const AMPM_POS = [6, 7, 8];
 
 export enum InteractionMode {
-    dialogPicker,
-    dropdownInput
+    dialog,
+    dropdown
 }
 export class TimePickerHammerConfig extends HammerGestureConfig {
     public overrides = {
@@ -110,7 +110,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
      * ```
      */
     @Input()
-    set value(value: Date) {
+    set value(value: Date) {;
         if (this._isValueValid(value)) {
             this._value = value;
             this._onChangeCallback(value);
@@ -498,8 +498,6 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
      * @hidden
      */
     public ngAfterViewInit(): void {
-        // this.dialogClosed = this._alert.toggleRef.onClosed.pipe().subscribe((ev) => this.handleDialogCloseAction());
-
         if (this._alert) {
             this.dialogClosed = this._alert.toggleRef.onClosed.pipe().subscribe((ev) => this.handleDialogCloseAction());
         }
@@ -542,6 +540,15 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
      */
     public writeValue(value: Date) {
         this.value = value;
+
+        if (this.mode === InteractionMode.dropdown) {
+            this.displayValue = this._formatTime(value, this.format);
+
+            if (value) {
+                this.isValid = this.validateInputValue();
+                this.isOutOfRange = !this._isValueValid(value);
+            }
+        }
     }
 
     /**
@@ -824,6 +831,10 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     }
 
     private _isValueValid(value: Date): boolean {
+        if (!value) {
+            return true;
+        }
+
         if (this.maxValue && value > this._convertMinMaxValue(this.maxValue)) {
             return false;
         } else if (this.minValue && value < this._convertMinMaxValue(this.minValue)) {
@@ -1004,11 +1015,12 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     @HostListener('keydown.spacebar', ['$event'])
     @HostListener('keydown.space', ['$event'])
     public onKeydownSpace(event) {
-        if (this.mode === InteractionMode.dialogPicker) {
+        if (this.mode === InteractionMode.dialog) {
             this.openDialog();
         } else {
             this.toggleDropDown();
         }
+
         event.preventDefault();
     }
 
@@ -1065,7 +1077,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         if (this.timePickerTemplateDirective) {
             return this.timePickerTemplateDirective.template;
         }
-        return this.mode === InteractionMode.dialogPicker ? this.defaultTimePickerTemplate : this.dropdownInputTemplate;
+        return this.mode === InteractionMode.dialog ? this.defaultTimePickerTemplate : this.dropdownInputTemplate;
     }
 
     /**
@@ -1084,8 +1096,9 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
 
     constructor(public cdr: ChangeDetectorRef) { }
 
-    public displayValue: string = '';
-    public isValid: boolean = true;
+    public displayValue = '';
+    public isValid = true;
+    public isOutOfRange = false;
     public promptChar = '-';
     public mask: string;
     public displayFormat = new TimeDisplayFormatPipe(this);
@@ -1093,24 +1106,26 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
 
     private _items: any[];
 
-
     @Input()
-    public mode = InteractionMode.dialogPicker;
+    public mode = InteractionMode.dialog;
 
     @Input()
     public invalidTimeMessage = 'Enter a valid time value!';
 
     @Input()
+    public outOfRangeTimeMessage = 'The value is out of range!';
+
+    @Input()
     public dropDownHeight = '200px';
+
+    @ViewChild('dropDown', {read: IgxDropDownComponent})
+    public dropdown: IgxDropDownComponent;
 
     @ViewChild('dropdownInputTemplate', { read: TemplateRef })
     private dropdownInputTemplate: TemplateRef<any>;
 
     @ViewChild('outlet', { read: IgxOverlayOutletDirective })
     private outlet: IgxOverlayOutletDirective;
-
-    @ViewChild('dropDown', {read: IgxDropDownComponent})
-    private dropdown: IgxDropDownComponent;
 
     @ViewChild('prefix', { read: IgxPrefixDirective })
     private prefix: IgxPrefixDirective;
@@ -1216,15 +1231,9 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
     public onDropDownOpening() {
         this.setCursorPosition(this.getCursorPosition());
 
-        if (this.dropdown.selectedItem) {
-            this.dropdown.selectedItem.isSelected = false;
-        }
-
         const newSelection = this.dropdown.items.filter((item) => item.value === this.displayValue).reduce((a, b) => a.concat(b), [])[0];
         if (newSelection) {
-            newSelection.isSelected = true;
-            this.dropdown.scrollToHiddenItem(newSelection);
-            this.cdr.detectChanges();
+            this.dropdown.selectItem(newSelection);
         }
     }
 
@@ -1233,6 +1242,7 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
 
         if (this.dropdown.selectedItem) {
             this.isValid = true;
+            this.isOutOfRange = false;
 
             this.displayValue = this.dropdown.selectedItem.value;
             this.value = this._convertMinMaxValue(this.displayValue);
@@ -1245,9 +1255,14 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
 
     public clear() {
         this.displayValue = '';
-        this._onChangeCallback(null);
+
+        this.value = null;
+        // this._onChangeCallback(null);
+
+        debugger;
 
         this.isValid = true;
+        this.isOutOfRange = false;
 
         if (this.dropdown.selectedItem) {
             (this.dropdown.selectedItem as IgxDropDownItemComponent).isSelected = false;
@@ -1290,13 +1305,56 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
         const value = event.target.value;
 
         this.displayValue = value;
-        this.value = value !== this.parseMask() ? this._convertMinMaxValue(value) : null;
+        this.value = value && value !== this.parseMask() ? this._convertMinMaxValue(value) : null;
 
-        this.isValid = this.validateInputValue();
+        if (value) {
+            this.isValid = this.validateInputValue();
+            this.isOutOfRange = !this._isValueValid(this._convertMinMaxValue(value));
+        }
+    }
+
+    public onKeydown(event) {
+        const key = event.key.toLowerCase();
+
+        switch (key) {
+            case 'arrowup':
+            case 'up':
+            case 'arrowdown':
+            case 'down':
+                this.spinOnEdit(event);
+                break;
+            case 'backspace':
+            case 'delete':
+            case 'del':
+                this.updateValueOnDelete(event);
+                break;
+            default:
+                return;
+
+        }
+    }
+
+    public updateValueOnDelete(event) {
+        requestAnimationFrame(() => {
+            const value = event.target.value;
+
+            if (!this.value || !value || value === this.parseMask()) {
+                this.value = null;
+                // this._onChangeCallback(null);
+
+                this.isValid = true;
+                this.isOutOfRange = false;
+
+                if (this.dropdown.selectedItem) {
+                    (this.dropdown.selectedItem as IgxDropDownItemComponent).isSelected = false;
+                }
+            }
+        });
     }
 
     public spinOnEdit(event) {
-        if (this.value && this.dropdown.collapsed) {
+        debugger;
+        if (this.dropdown.collapsed) {
             event.preventDefault();
             event.stopPropagation();
 
@@ -1309,12 +1367,18 @@ export class IgxTimePickerComponent implements ControlValueAccessor, EditorProvi
                 upDownArrow = event.wheelDelta === 120 ? 1 : -1;
             }
 
+            const min = this.minValue ? this._convertMinMaxValue(this.minValue) : this._convertMinMaxValue(this.dropdown.items[0].value);
+            const max =  this.maxValue ? this._convertMinMaxValue(this.maxValue) : this._convertMinMaxValue(this.dropdown.items[this.dropdown.items.length - 1].value);
+
+
+            if (!this.value) {
+                this.value = min;
+            }
+
             const cursor = this.getCursorPosition();
             const hDelta = this.itemsDelta.hours * 60 + (upDownArrow * this.value.getMinutes());
             const mDelta = this.itemsDelta.minutes;
 
-            const min = this.minValue ? this._convertMinMaxValue(this.minValue) : this._convertMinMaxValue(this.dropdown.items[0].value);
-            const max =  this.maxValue ? this._convertMinMaxValue(this.maxValue) : this._convertMinMaxValue(this.dropdown.items[this.dropdown.items.length - 1].value);
 
             if (HOURS_POS.indexOf(cursor) !== -1) {
                 this.value.setMinutes(upDownArrow * hDelta);
@@ -1372,7 +1436,7 @@ export class TimeDisplayFormatPipe implements PipeTransform {
     transform(value: any): string {
         const mask = this.timePicker.parseMask();
         if (!value || value === mask) {
-            return mask;
+            return this.timePicker.dropdown.collapsed ? '' : mask;
         }
 
         const sections = value.split(/[\s:]+/);
