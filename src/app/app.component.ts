@@ -85,7 +85,7 @@ export class AppComponent implements OnInit {
         },
         {
             link: '/dropDown',
-            icon: 'drop_down',
+            icon: 'view_list',
             name: 'DropDown'
         },
         {
@@ -174,16 +174,6 @@ export class AppComponent implements OnInit {
             name: 'Grid Toolbar'
         },
         {
-            link: '/treeGrid',
-            icon: 'view_column',
-            name: 'Tree Grid'
-        },
-        {
-            link: '/treeGridFlatData',
-            icon: 'view_column',
-            name: 'Tree Grid Flat Data'
-        },
-        {
             link: '/icon',
             icon: 'android',
             name: 'Icon'
@@ -215,12 +205,12 @@ export class AppComponent implements OnInit {
         },
         {
             link: '/overlay',
-            icon: 'overlay',
+            icon: 'flip_to_front',
             name: 'Overlay'
         },
         {
             link: '/overlay-animation',
-            icon: 'overlay_animation',
+            icon: 'flip_to_front',
             name: 'Overlay Animation'
         },
         {
@@ -257,6 +247,16 @@ export class AppComponent implements OnInit {
             link: '/toast',
             icon: 'android',
             name: 'Toast'
+        },
+        {
+            link: '/treeGrid',
+            icon: 'view_column',
+            name: 'Tree Grid'
+        },
+        {
+            link: '/treeGridFlatData',
+            icon: 'view_column',
+            name: 'Tree Grid Flat Data'
         }
     ];
 
@@ -277,24 +277,24 @@ export class AppComponent implements OnInit {
             name: 'Layout'
         },
         {
-            link: '/ripple',
-            icon: 'wifi_tethering',
-            name: 'Ripple'
-        },
-        {
-            link: '/virtualForDirective',
-            icon: 'view_column',
-            name: 'Virtual-For Directive'
-        },
-        {
             link: '/mask',
             icon: 'view_column',
             name: 'Mask Directive'
         },
         {
+            link: '/ripple',
+            icon: 'wifi_tethering',
+            name: 'Ripple'
+        },
+        {
             link: '/tooltip',
             icon: 'info',
             name: 'Tooltip'
+        },
+        {
+            link: '/virtualForDirective',
+            icon: 'view_column',
+            name: 'Virtual-For Directive'
         }
     ];
 
@@ -305,14 +305,14 @@ export class AppComponent implements OnInit {
             name: 'Colors'
         },
         {
-            link: '/typography',
-            icon: 'font_download',
-            name: 'Typography'
-        },
-        {
             link: '/shadows',
             icon: 'layers',
             name: 'Shadows'
+        },
+        {
+            link: '/typography',
+            icon: 'font_download',
+            name: 'Typography'
         }
     ];
 
