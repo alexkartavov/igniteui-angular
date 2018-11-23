@@ -1357,6 +1357,10 @@ export class IgxColumnGroupComponent extends IgxColumnComponent implements After
     }
 
     set width(val) { }
+
+    constructor(public gridAPI: GridBaseAPIService<IgxGridBaseComponent>, public cdr: ChangeDetectorRef) {
+        super(gridAPI, cdr);
+    }
 }
 
 
